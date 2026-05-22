@@ -314,6 +314,9 @@
     </div>
   </div>
 
+  <div id="ram-warning" style="margin-top:14px; padding:12px 14px; background:#1a1200; border:1px solid #554400; border-radius:8px; font-size:0.72rem; color:#aaa; display:none;">
+    ⚠️ <strong style="color:#ffcc00">Servidor amb 512MB RAM.</strong> Per playlists llargues, descarrega primer les primeres 10-20 cançons afegint <code style="color:#1DB954">?si=...</code> — o usa cançons/àlbums individuals per millors resultats.
+  </div>
   <button class="btn" id="download-btn" onclick="startDownload()">
     ↓ DESCARREGAR
   </button>
@@ -353,6 +356,9 @@ async function startDownload() {
     alert('Enganxa una URL vàlida de Spotify.');
     return;
   }
+  // Avisa si és una playlist llarga
+  document.getElementById('ram-warning').style.display =
+    url.includes('/playlist/') ? 'block' : 'none';
 
   document.getElementById('download-btn').disabled = true;
   document.getElementById('form-card').style.display = 'none';
