@@ -369,16 +369,55 @@ async function startDownload() {
     const data = await res.json();
     if (data.error) { showError(data.error); return; }
     currentJobId = data.job_id;
+    serverStart = null; notFoundCount = 0;
+    // Guarda el start time del servidor
+    const pingData = await (await fetch('/ping')).json();
+    serverStart = pingData.start;
     pollInterval = setInterval(pollStatus, 1500);
   } catch (e) {
     showError('Error de connexió amb el servidor.');
   }
 }
 
+let serverStart = null;
+let notFoundCount = 0;
+
+async function getServerStart() {
+  try {
+    const r = await fetch('/ping');
+    const d = await r.json();
+    return d.start;
+  } catch(e) { return null; }
+}
+
 async function pollStatus() {
   if (!currentJobId) return;
   try {
     const res = await fetch(`/status/${currentJobId}`);
+
+    // Detecta reinici del servidor (job perdut)
+    if (res.status === 404) {
+      notFoundCount++;
+      if (notFoundCount >= 3) {
+        clearInterval(pollInterval);
+        showError('El servidor s\'ha reiniciat i la descàrrega s\'ha perdut. Torna-ho a intentar.');
+      }
+      return;
+    }
+    notFoundCount = 0;
+
+    // Detecta si el servidor s'ha reiniciat (start time diferent)
+    try {
+      const pingRes = await fetch('/ping');
+      const pingData = await pingRes.json();
+      if (serverStart && pingData.start !== serverStart) {
+        clearInterval(pollInterval);
+        showError('El servidor s\'ha reiniciat durant la descàrrega. Torna-ho a intentar.');
+        return;
+      }
+      if (!serverStart) serverStart = pingData.start;
+    } catch(e) {}
+
     const job = await res.json();
 
     // Append new log lines
@@ -387,7 +426,7 @@ async function pollStatus() {
       for (let i = lastLogCount; i < job.log.length; i++) {
         const line = job.log[i];
         const span = document.createElement('span');
-        span.className = 'log-line' + (line.includes('Downloaded') || line.includes('✓') ? ' ok' : line.includes('error') || line.includes('Error') ? ' err' : '');
+        span.className = 'log-line' + (line.includes('Downloaded') || line.includes('✓') ? ' ok' : line.toLowerCase().includes('error') ? ' err' : '');
         span.textContent = line;
         logBox.appendChild(span);
         logBox.appendChild(document.createElement('br'));
@@ -403,14 +442,13 @@ async function pollStatus() {
       clearInterval(pollInterval);
       showError(job.error || 'Error desconegut durant la descàrrega.');
     } else {
-      // Update status text with last log line
       if (job.log && job.log.length > 0) {
         const last = job.log[job.log.length - 1];
         document.getElementById('status-text').textContent = last.length > 60 ? last.slice(0, 60) + '…' : last;
       }
     }
   } catch (e) {
-    // Network hiccup, keep polling
+    // Network hiccup
   }
 }
 
