@@ -1,4 +1,6 @@
-<html lang="ca"><head>
+<!DOCTYPE html>
+<html lang="ca">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spotify → MP3</title>
@@ -287,7 +289,8 @@
 <!-- Form -->
 <div class="card" id="form-card">
   <label>URL de Spotify</label>
-  <input type="text" id="url-input" placeholder="https://open.spotify.com/playlist/...">
+  <input type="text" id="url-input"
+    placeholder="https://open.spotify.com/playlist/...">
 
   <div class="row2">
     <div>
@@ -306,7 +309,7 @@
         <option value="128k">128 kbps</option>
         <option value="192k">192 kbps</option>
         <option value="256k">256 kbps</option>
-        <option value="320k" selected="">320 kbps</option>
+        <option value="320k" selected>320 kbps</option>
       </select>
     </div>
   </div>
@@ -466,6 +469,5 @@ function reset() {
   document.getElementById('form-card').style.display = 'block';
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
