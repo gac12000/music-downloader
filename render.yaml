@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: spotify-mp3
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn app:app --workers 2 --threads 4 --timeout 300 --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
