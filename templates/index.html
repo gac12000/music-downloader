@@ -1,0 +1,471 @@
+<html lang="ca"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotify → MP3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+
+  :root {
+    --green: #1DB954;
+    --green-dark: #17a349;
+    --bg: #0a0a0a;
+    --card: #111111;
+    --border: #222222;
+    --muted: #555555;
+    --text: #eeeeee;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 16px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-size: 3rem;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 7vw, 3.8rem);
+    font-weight: 800;
+    letter-spacing: -3px;
+    color: #fff;
+    line-height: 1;
+  }
+
+  h1 span { color: var(--green); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-top: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    margin-top: 18px;
+  }
+
+  label:first-child { margin-top: 0; }
+
+  input[type="text"], select {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+
+  input[type="text"]:focus,
+  select:focus { border-color: var(--green); }
+
+  input::placeholder { color: var(--muted); }
+
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: 24px;
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 16px;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn:hover { background: var(--green-dark); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* progress */
+  #progress-card { display: none; }
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-text {
+    font-size: 0.8rem;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .log-box {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.68rem;
+    line-height: 1.7;
+    color: #888;
+  }
+
+  .log-box .log-line { display: block; }
+  .log-box .log-line.ok { color: var(--green); }
+  .log-box .log-line.err { color: #ff5555; }
+
+  /* results */
+  #results-card { display: none; }
+
+  .result-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: var(--green);
+  }
+
+  .file-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .file-name {
+    font-size: 0.72rem;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .dl-btn {
+    background: var(--green);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .dl-btn:hover { background: var(--green-dark); }
+
+  .error-box {
+    background: #1a0a0a;
+    border: 1px solid #ff3333;
+    border-radius: 8px;
+    padding: 14px;
+    color: #ff5555;
+    font-size: 0.75rem;
+  }
+
+  .new-btn {
+    width: 100%;
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .new-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* footer */
+  footer {
+    margin-top: 48px;
+    color: var(--muted);
+    font-size: 0.65rem;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  /* badge */
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .badge {
+    background: #1a1a1a;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎵</div>
+  <h1>SPOTIFY <span>→</span> MP3</h1>
+  <p class="subtitle">Sense API key · YouTube com a font · 320kbps</p>
+  <div class="badge-row">
+    <span class="badge">PLAYLISTS</span>
+    <span class="badge">ÀLBUMS</span>
+    <span class="badge">CANÇONS</span>
+    <span class="badge">ARTISTES</span>
+  </div>
+</header>
+
+<!-- Form -->
+<div class="card" id="form-card">
+  <label>URL de Spotify</label>
+  <input type="text" id="url-input" placeholder="https://open.spotify.com/playlist/...">
+
+  <div class="row2">
+    <div>
+      <label>Format</label>
+      <select id="format-select">
+        <option value="mp3">MP3</option>
+        <option value="flac">FLAC</option>
+        <option value="m4a">M4A</option>
+        <option value="ogg">OGG</option>
+        <option value="wav">WAV</option>
+      </select>
+    </div>
+    <div>
+      <label>Qualitat</label>
+      <select id="bitrate-select">
+        <option value="128k">128 kbps</option>
+        <option value="192k">192 kbps</option>
+        <option value="256k">256 kbps</option>
+        <option value="320k" selected="">320 kbps</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn" id="download-btn" onclick="startDownload()">
+    ↓ DESCARREGAR
+  </button>
+</div>
+
+<!-- Progress -->
+<div class="card" id="progress-card">
+  <div class="status-header">
+    <div class="spinner" id="spinner"></div>
+    <span class="status-text" id="status-text">Iniciant descàrrega...</span>
+  </div>
+  <div class="log-box" id="log-box"></div>
+</div>
+
+<!-- Results -->
+<div class="card" id="results-card">
+  <div class="result-title" id="result-title">✓ Descàrrega completada</div>
+  <div id="files-container"></div>
+  <button class="new-btn" onclick="reset()">← Nova descàrrega</button>
+</div>
+
+<footer>
+  <p>Funciona amb spotdl + yt-dlp · Els fitxers s'esborren del servidor després de la descàrrega</p>
+</footer>
+
+<script>
+let currentJobId = null;
+let pollInterval = null;
+let lastLogCount = 0;
+
+async function startDownload() {
+  const url = document.getElementById('url-input').value.trim();
+  const fmt = document.getElementById('format-select').value;
+  const bitrate = document.getElementById('bitrate-select').value;
+
+  if (!url || !url.includes('spotify.com')) {
+    alert('Enganxa una URL vàlida de Spotify.');
+    return;
+  }
+
+  document.getElementById('download-btn').disabled = true;
+  document.getElementById('form-card').style.display = 'none';
+  document.getElementById('progress-card').style.display = 'block';
+  document.getElementById('log-box').innerHTML = '';
+  lastLogCount = 0;
+
+  try {
+    const res = await fetch('/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, format: fmt, bitrate })
+    });
+    const data = await res.json();
+    if (data.error) { showError(data.error); return; }
+    currentJobId = data.job_id;
+    pollInterval = setInterval(pollStatus, 1500);
+  } catch (e) {
+    showError('Error de connexió amb el servidor.');
+  }
+}
+
+async function pollStatus() {
+  if (!currentJobId) return;
+  try {
+    const res = await fetch(`/status/${currentJobId}`);
+    const job = await res.json();
+
+    // Append new log lines
+    const logBox = document.getElementById('log-box');
+    if (job.log && job.log.length > lastLogCount) {
+      for (let i = lastLogCount; i < job.log.length; i++) {
+        const line = job.log[i];
+        const span = document.createElement('span');
+        span.className = 'log-line' + (line.includes('Downloaded') || line.includes('✓') ? ' ok' : line.includes('error') || line.includes('Error') ? ' err' : '');
+        span.textContent = line;
+        logBox.appendChild(span);
+        logBox.appendChild(document.createElement('br'));
+      }
+      lastLogCount = job.log.length;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    if (job.status === 'done') {
+      clearInterval(pollInterval);
+      showResults(job.files);
+    } else if (job.status === 'error') {
+      clearInterval(pollInterval);
+      showError(job.error || 'Error desconegut durant la descàrrega.');
+    } else {
+      // Update status text with last log line
+      if (job.log && job.log.length > 0) {
+        const last = job.log[job.log.length - 1];
+        document.getElementById('status-text').textContent = last.length > 60 ? last.slice(0, 60) + '…' : last;
+      }
+    }
+  } catch (e) {
+    // Network hiccup, keep polling
+  }
+}
+
+function showResults(files) {
+  document.getElementById('progress-card').style.display = 'none';
+  document.getElementById('results-card').style.display = 'block';
+
+  const container = document.getElementById('files-container');
+  container.innerHTML = '';
+
+  if (!files || files.length === 0) {
+    container.innerHTML = '<div class="error-box">No s\'han trobat fitxers. Potser la URL no és accessible o les cançons no estan disponibles.</div>';
+    return;
+  }
+
+  document.getElementById('result-title').textContent = `✓ ${files.length} fitxer${files.length > 1 ? 's' : ''} descarregat${files.length > 1 ? 's' : ''}`;
+
+  const list = document.createElement('div');
+  list.className = 'file-list';
+
+  files.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <span class="file-name">🎵 ${name}</span>
+      <button class="dl-btn" onclick="downloadFile('${name}')">↓ Baixar</button>
+    `;
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+}
+
+function downloadFile(filename) {
+  window.location.href = `/file/${currentJobId}/${encodeURIComponent(filename)}`;
+}
+
+function showError(msg) {
+  document.getElementById('progress-card').style.display = 'none';
+  document.getElementById('results-card').style.display = 'block';
+  document.getElementById('result-title').textContent = '✗ Error';
+  document.getElementById('files-container').innerHTML = `<div class="error-box">${msg}</div>`;
+}
+
+function reset() {
+  if (currentJobId) {
+    fetch(`/cleanup/${currentJobId}`, { method: 'DELETE' });
+    currentJobId = null;
+  }
+  clearInterval(pollInterval);
+  lastLogCount = 0;
+  document.getElementById('url-input').value = '';
+  document.getElementById('download-btn').disabled = false;
+  document.getElementById('results-card').style.display = 'none';
+  document.getElementById('progress-card').style.display = 'none';
+  document.getElementById('form-card').style.display = 'block';
+}
+</script>
+
+
+</body></html>
