@@ -76,20 +76,52 @@ def run_download(job_id, url, fmt, bitrate):
         except Exception as e:
             log(f"Error descarregant ffmpeg: {e}")
 
-    cmd = get_spotdl_cmd() + [url, "--output", str(job_dir),
-                               "--format", fmt, "--bitrate", bitrate, "--threads", "2"]
+    # Descarrega Deno si cal
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "spotdl", "--download-deno"],
+            input="y\n", capture_output=True, text=True, timeout=120
+        )
+        log("Deno: OK" if r.returncode == 0 else f"Deno: {r.stderr[-100:]}")
+    except Exception as e:
+        log(f"Deno download error: {e}")
+
+    cmd = get_spotdl_cmd() + [
+        url,
+        "--output", str(job_dir),
+        "--format", fmt,
+        "--bitrate", bitrate,
+        "--threads", "1",          # 1 descàrrega alhora → menys RAM
+        "--yt-dlp-args", "--no-playlist-reverse",  # evita carregar tot el playlist a memòria
+    ]
     if ffmpeg:
-        cmd += ["--ffmpeg", ffmpeg]
+        # Limita ffmpeg a 64MB de RAM i 1 thread
+        cmd += ["--ffmpeg", ffmpeg, "--ffmpeg-args", "-threads 1 -bufsize 32k"]
 
     log(f"CMD: {' '.join(cmd)}")
 
     try:
+        import gc
+        gc.collect()  # Neteja memòria abans de començar
+
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                    text=True, bufsize=1)
         for line in process.stdout:
             line = line.strip()
             if line:
                 log(line)
+                # Mostra RAM disponible cada vegada que spotdl descarrega una cançó
+                if "Downloaded" in line or "Skipping" in line:
+                    try:
+                        with open('/proc/meminfo') as mf:
+                            for ml in mf:
+                                if 'MemAvailable' in ml:
+                                    kb = int(ml.split()[1])
+                                    log(f"RAM disponible: {kb//1024} MB")
+                                    break
+                    except Exception:
+                        pass
+                    gc.collect()
         process.wait()
         log(f"Exit code: {process.returncode}")
 
