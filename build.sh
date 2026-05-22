@@ -4,7 +4,7 @@ set -e
 echo "==> Instal·lant dependències Python..."
 pip install -r requirements.txt
 
-echo "==> Instal·lant ffmpeg..."
-apt-get update -qq && apt-get install -y -qq ffmpeg
+echo "==> Instal·lant ffmpeg via spotdl..."
+python -m spotdl --download-ffmpeg
 
 echo "==> Build complet!"
